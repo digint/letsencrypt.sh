@@ -21,15 +21,21 @@ rsh[www.example.org]="ssh -i /etc/ssh/id_rsa.letsencrypt letsencrypt@example.org
 
 
 command=$1
-echo " * ssh_hook.sh: $command"
+domain=$2
+
+if [[ -z "${domain}" ]]; then
+    # clean_challenge is sometimes called with empty domain!
+    echo " * ssh_hook.sh: ERROR: empty domain string! (command=${command})..." >&2
+    exit 1
+fi
+
+echo " * ssh_hook.sh: ${command} for ${domain}..."
 
 case $command in
   deploy_challenge|clean_challenge)
-    altname=$2
-    ${rsh[$altname]} $@
+    ${rsh[$domain]} $@
     ;;
   deploy_cert)
-    domain=$2
     privkey=$3
     cert=$4
     fullchain=$5
@@ -38,7 +44,7 @@ case $command in
     cat $fullchain | ${rsh[$domain]} deploy_fullchain $domain
     ;;
   *)
-    echo "illegal command" >&2
+    echo "ssh_hook.sh: illegal command: ${command}" >&2
     exit 1
     ;;
 esac
